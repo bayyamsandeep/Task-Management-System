@@ -1,0 +1,27 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consumer
+  template:
+    metadata:
+      labels:
+        app: consumer
+    spec:
+      containers:
+      - name: consumer
+        image: <YOUR_ACR_NAME>.azurecr.io/consumer:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: KAFKA_BOOTSTRAP
+          value: kafka:9092
+        - name: MONGO_URI
+          value: mongodb://mongo:27017/tasksdb
+        - name: KAFKA_TOPIC
+          value: tasks

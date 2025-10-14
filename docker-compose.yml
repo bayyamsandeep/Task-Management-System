@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: backend
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGO_URI=mongodb://172.17.0.1:27017/tasksdb
+      - KAFKA_BOOTSTRAP=172.17.0.1:9092
+      - MINIO_ENDPOINT=172.17.0.1:9005
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=password
+      - MINIO_BUCKET=uploads
+
+  consumer:
+    build: ./consumer
+    container_name: consumer
+    ports:
+      - "5000:5000"
+    environment:
+      - KAFKA_BOOTSTRAP=172.17.0.1:9092
+      - MONGO_URI=mongodb://172.17.0.1:27017/tasksdb
+      - KAFKA_TOPIC=tasks
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://172.17.0.1:8000
+      - REACT_APP_EVENTS_URL=http://172.17.0.1:5000
+      - REACT_APP_WS_URL=ws://172.17.0.1:5000

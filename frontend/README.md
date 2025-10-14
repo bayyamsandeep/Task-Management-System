@@ -1,0 +1,1 @@
+React frontend that consumes the FastAPI backend.

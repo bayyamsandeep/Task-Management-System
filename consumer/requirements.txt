@@ -1,0 +1,7 @@
+
+kafka-python==2.0.2
+pymongo[srv]==4.3.3
+python-dotenv
+fastapi==0.95.2
+uvicorn==0.22.0
+python-multipart
