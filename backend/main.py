@@ -13,13 +13,13 @@ import boto3
 from botocore.client import Config
 from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/tasksdb")
-KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "localhost:9092")
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "localhost:9000")
-MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
+MONGO_URI = os.getenv("MONGO_URI", "")
+KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "")
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "")
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "")
+MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "")
 MINIO_BUCKET = os.getenv("MINIO_BUCKET", "uploads")
 
 client = MongoClient(MONGO_URI)
@@ -27,23 +27,23 @@ db = client.get_default_database() if client else client['tasksdb']
 tasks_col = db.get_collection("tasks")
 
 # Kafka producer (simple)
-producer = KafkaProducer(bootstrap_servers=[KAFKA_BOOTSTRAP],
-                         value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-                         retries=5)
+# producer = KafkaProducer(bootstrap_servers=[KAFKA_BOOTSTRAP],
+#                          value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+#                          retries=5)
 
-# MinIO (S3 compatible) client via boto3
-s3 = boto3.client('s3',
-                  endpoint_url=f'http://{MINIO_ENDPOINT}',
-                  aws_access_key_id=MINIO_ACCESS_KEY,
-                  aws_secret_access_key=MINIO_SECRET_KEY,
-                  config=Config(signature_version='s3v4'),
-                  region_name='us-east-1')
+# # MinIO (S3 compatible) client via boto3
+# s3 = boto3.client('s3',
+#                   endpoint_url=f'http://{MINIO_ENDPOINT}',
+#                   aws_access_key_id=MINIO_ACCESS_KEY,
+#                   aws_secret_access_key=MINIO_SECRET_KEY,
+#                   config=Config(signature_version='s3v4'),
+#                   region_name='us-east-1')
 
-# ensure bucket exists (for local, may fail in some cloud envs)
-try:
-    s3.create_bucket(Bucket=MINIO_BUCKET)
-except Exception:
-    pass
+# # ensure bucket exists (for local, may fail in some cloud envs)
+# try:
+#     s3.create_bucket(Bucket=MINIO_BUCKET)
+# except Exception:
+#     pass
 
 app = FastAPI(title='Task Management API')
 
@@ -140,8 +140,9 @@ def delete_task(task_id: str):
 
 @app.post('/upload', response_model=dict)
 def upload_file(file: UploadFile = File(...)):
-    data = file.file.read()
-    key = file.filename
-    s3.put_object(Bucket=MINIO_BUCKET, Key=key, Body=data)
-    url = f'http://{MINIO_ENDPOINT}/{MINIO_BUCKET}/{key}'
-    return {'filename': key, 'url': url}
+    # data = file.file.read()
+    # key = file.filename
+    # s3.put_object(Bucket=MINIO_BUCKET, Key=key, Body=data)
+    # url = f'http://{MINIO_ENDPOINT}/{MINIO_BUCKET}/{key}'
+    # return {'filename': key, 'url': url}
+    return "Success"
