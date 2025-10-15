@@ -31,7 +31,7 @@ jobs:
         run: |
           python -m venv antenv
           source antenv/bin/activate
-          pip install --upgrade pip
+          pip install --upgrade pip setuptools wheel
           pip install --upgrade fastapi pydantic
           pip install --upgrade typing_extensions
           pip install -r requirements.txt gunicorn gevent uvicorn
@@ -80,6 +80,7 @@ jobs:
           package: './backend'
 
           
+
 
 
 
