@@ -9,3 +9,5 @@ pydantic
 python-dotenv
 gunicorn
 uvicorn
+typing_extensions>=4.12.0
+
