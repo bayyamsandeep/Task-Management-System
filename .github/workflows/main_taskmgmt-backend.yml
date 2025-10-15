@@ -81,10 +81,6 @@
 
           
 
-
-
-
-
 name: Build and deploy Python app to Azure Web App - taskmgmt-backend
 
 on:
@@ -97,32 +93,33 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: read  # Required for actions/checkout
-      id-token: write # Required for Azure login
+      contents: read
+      id-token: write
 
     steps:
-      # 1️⃣ Checkout the repo
+      # 1️⃣ Checkout repo
       - uses: actions/checkout@v4
 
-      # 2️⃣ Set up Python version (for local build/test if needed)
-      - name: Set up Python 3.12
+      # 2️⃣ Set up Python 3.12
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      # 3️⃣ Optional: install dependencies locally for testing (skip for deployment)
-      # - name: Install dependencies locally
-      #   working-directory: ./backend
-      #   run: |
-      #     pip install --upgrade pip setuptools wheel
-      #     pip install -r requirements.txt
+      # 3️⃣ Install dependencies locally to ensure compatibility
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          # Upgrade core packages to avoid typing_extensions/Sentinel issues
+          pip install --upgrade typing_extensions pydantic fastapi
+          pip install -r requirements.txt gunicorn uvicorn gevent
 
-      # 4️⃣ Upload source code for deployment
-      - name: Upload source code artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: ./backend
+      # 4️⃣ Create deployment zip
+      - name: Create deployment package
+        run: |
+          cd backend
+          zip -r ../backend.zip .
 
       # 5️⃣ Login to Azure
       - name: Azure Login
@@ -132,10 +129,10 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_27937935BCB646E79010FA73A8F18254 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_BB24AF743D6C4070AE01D3EB310B2522 }}
 
-      # 6️⃣ Deploy to Azure Web App
+      # 6️⃣ Deploy zip package to Azure
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'taskmgmt-backend'
           slot-name: 'Production'
-          package: './backend'
+          package: './backend.zip'
