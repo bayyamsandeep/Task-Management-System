@@ -8,20 +8,27 @@ import json
 # from kafka import KafkaProducer
 import boto3
 from botocore.client import Config
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 
-MONGO_URI = os.getenv("MONGO_URI", "")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://taskmgmt-backend-server:4THaNtDiMiyKOBKU5QPewPFlBBAaP7QIQK5KidHTSDx7yy0lQ8Uw75zerkX6DERtMqjdxnPPzgjUACDbqchQDQ==@taskmgmt-backend-server.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@taskmgmt-backend-server@")
 KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "")
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "")
 MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "")
 MINIO_BUCKET = os.getenv("MINIO_BUCKET", "uploads")
 
-client = MongoClient(MONGO_URI)
-db = client.get_default_database() if client else client["tasksdb"]
-tasks_col = db.get_collection("tasks")
+if not MONGO_URI:
+    raise RuntimeError("❌ MONGO_URI environment variable not set.")
+
+try:
+    client = MongoClient(MONGO_URI)
+    db = client.get_database("tasksdb")  # or any DB name you use
+    print("✅ Connected to MongoDB (CosmosDB) successfully.")
+except Exception as e:
+    print("❌ MongoDB connection failed:", e)
+    raise e
 
 # Kafka producer (simple)
 # producer = KafkaProducer(
