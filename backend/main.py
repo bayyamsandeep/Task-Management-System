@@ -8,12 +8,12 @@ from bson.objectid import ObjectId
 import os
 import json
 import io
-from kafka import KafkaProducer
+# from kafka import KafkaProducer
 import boto3
 from botocore.client import Config
 from dotenv import load_dotenv
 
-# load_dotenv()
+load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI", "")
 KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "")
@@ -84,11 +84,11 @@ def create_task(task: Task):
     res = tasks_col.insert_one(doc)
     doc['_id'] = str(res.inserted_id)
     # send kafka event
-    try:
-        producer.send('tasks', {'action': 'create', 'task': doc})
-        producer.flush()
-    except Exception as e:
-        print('Kafka produce error', e)
+    # try:
+    # producer.send('tasks', {'action': 'create', 'task': doc})
+    # producer.flush()
+    # except Exception as e:
+    #     print('Kafka produce error', e)
     return doc
 
 
@@ -116,11 +116,11 @@ def update_task(task_id: str, task: Task):
         raise HTTPException(status_code=404, detail='Not found')
     item = tasks_col.find_one({'_id': ObjectId(task_id)})
     item['_id'] = str(item['_id'])
-    try:
-        producer.send('tasks', {'action': 'update', 'task': item})
-        producer.flush()
-    except Exception as e:
-        print('Kafka produce error', e)
+    # try:
+    # producer.send('tasks', {'action': 'update', 'task': item})
+    # producer.flush()
+    # except Exception as e:
+    #     print('Kafka produce error', e)
     return item
 
 
@@ -130,11 +130,11 @@ def delete_task(task_id: str):
     if not item:
         raise HTTPException(status_code=404, detail='Not found')
     tasks_col.delete_one({'_id': ObjectId(task_id)})
-    try:
-        producer.send('tasks', {'action': 'delete', 'task_id': task_id})
-        producer.flush()
-    except Exception as e:
-        print('Kafka produce error', e)
+    # try:
+    # producer.send('tasks', {'action': 'delete', 'task_id': task_id})
+    # producer.flush()
+    # except Exception as e:
+    #     print('Kafka produce error', e)
     return {'status': 'deleted', 'id': task_id}
 
 
@@ -146,6 +146,7 @@ def upload_file(file: UploadFile = File(...)):
     # url = f'http://{MINIO_ENDPOINT}/{MINIO_BUCKET}/{key}'
     # return {'filename': key, 'url': url}
     return "Success"
+
 
 if __name__ == "__main__":
     import uvicorn
