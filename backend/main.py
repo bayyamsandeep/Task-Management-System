@@ -1,13 +1,10 @@
-
-from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
 from typing import List
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import os
 import json
-import io
 # from kafka import KafkaProducer
 import boto3
 from botocore.client import Config
@@ -23,21 +20,25 @@ MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "")
 MINIO_BUCKET = os.getenv("MINIO_BUCKET", "uploads")
 
 client = MongoClient(MONGO_URI)
-db = client.get_default_database() if client else client['tasksdb']
+db = client.get_default_database() if client else client["tasksdb"]
 tasks_col = db.get_collection("tasks")
 
 # Kafka producer (simple)
-# producer = KafkaProducer(bootstrap_servers=[KAFKA_BOOTSTRAP],
-#                          value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-#                          retries=5)
+# producer = KafkaProducer(
+#     bootstrap_servers=[KAFKA_BOOTSTRAP],
+#     value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+#     retries=5
+# )
 
 # # MinIO (S3 compatible) client via boto3
-# s3 = boto3.client('s3',
-#                   endpoint_url=f'http://{MINIO_ENDPOINT}',
-#                   aws_access_key_id=MINIO_ACCESS_KEY,
-#                   aws_secret_access_key=MINIO_SECRET_KEY,
-#                   config=Config(signature_version='s3v4'),
-#                   region_name='us-east-1')
+# s3 = boto3.client(
+#     "s3",
+#     endpoint_url=f"http://{MINIO_ENDPOINT}",
+#     aws_access_key_id=MINIO_ACCESS_KEY,
+#     aws_secret_access_key=MINIO_SECRET_KEY,
+#     config=Config(signature_version="s3v4"),
+#     region_name="us-east-1"
+# )
 
 # # ensure bucket exists (for local, may fail in some cloud envs)
 # try:
@@ -45,7 +46,7 @@ tasks_col = db.get_collection("tasks")
 # except Exception:
 #     pass
 
-app = FastAPI(title='Task Management API')
+app = FastAPI(title="Task Management API")
 
 # Allow CORS from frontend (adjust origin as needed)
 app.add_middleware(
@@ -57,98 +58,104 @@ app.add_middleware(
 )
 
 
-@app.get('/')
+@app.get("/")
 def root():
-    return {'message': 'Task Management API is running'}
+    return {"message": "Task Management API is running"}
 
 
-@app.get('/health')
+@app.get("/health")
 def health():
-    return {'status': 'ok'}
+    return {"status": "ok"}
 
 
-class Task(BaseModel):
-    title: str = Field(..., example='Buy apples')
-    description: str = Field('', example='Details')
-    done: bool = False
+def serialize_task(task):
+    """Convert MongoDB object to JSON serializable dict"""
+    task["_id"] = str(task["_id"])
+    return task
 
 
-def task_to_dict(t):
-    t['_id'] = str(t['_id'])
-    return t
+@app.post("/tasks")
+async def create_task(request: Request):
+    task_data = await request.json()
+    if "title" not in task_data:
+        raise HTTPException(status_code=400, detail="Missing 'title'")
+    task_data.setdefault("description", "")
+    task_data.setdefault("done", False)
 
+    res = tasks_col.insert_one(task_data)
+    task_data["_id"] = str(res.inserted_id)
 
-@app.post('/tasks', response_model=dict)
-def create_task(task: Task):
-    doc = task.dict()
-    res = tasks_col.insert_one(doc)
-    doc['_id'] = str(res.inserted_id)
     # send kafka event
     # try:
-    # producer.send('tasks', {'action': 'create', 'task': doc})
-    # producer.flush()
+    #     producer.send("tasks", {"action": "create", "task": task_data})
+    #     producer.flush()
     # except Exception as e:
-    #     print('Kafka produce error', e)
-    return doc
+    #     print("Kafka produce error", e)
+
+    return task_data
 
 
-@app.get('/tasks', response_model=List[dict])
+@app.get("/tasks")
 def list_tasks():
-    items = list(tasks_col.find())
-    for i in items:
-        i['_id'] = str(i['_id'])
-    return items
+    tasks = list(tasks_col.find())
+    return [serialize_task(t) for t in tasks]
 
 
-@app.get('/tasks/{task_id}', response_model=dict)
+@app.get("/tasks/{task_id}")
 def get_task(task_id: str):
-    item = tasks_col.find_one({'_id': ObjectId(task_id)})
-    if not item:
-        raise HTTPException(status_code=404, detail='Not found')
-    item['_id'] = str(item['_id'])
-    return item
+    task = tasks_col.find_one({"_id": ObjectId(task_id)})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return serialize_task(task)
 
 
-@app.put('/tasks/{task_id}', response_model=dict)
-def update_task(task_id: str, task: Task):
-    res = tasks_col.update_one({'_id': ObjectId(task_id)}, {'$set': task.dict()})
-    if res.matched_count == 0:
-        raise HTTPException(status_code=404, detail='Not found')
-    item = tasks_col.find_one({'_id': ObjectId(task_id)})
-    item['_id'] = str(item['_id'])
+@app.put("/tasks/{task_id}")
+async def update_task(task_id: str, request: Request):
+    task_data = await request.json()
+    result = tasks_col.update_one({"_id": ObjectId(task_id)}, {"$set": task_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    updated_task = tasks_col.find_one({"_id": ObjectId(task_id)})
+
     # try:
-    # producer.send('tasks', {'action': 'update', 'task': item})
-    # producer.flush()
+    #     producer.send("tasks", {"action": "update", "task": updated_task})
+    #     producer.flush()
     # except Exception as e:
-    #     print('Kafka produce error', e)
-    return item
+    #     print("Kafka produce error", e)
+
+    return serialize_task(updated_task)
 
 
-@app.delete('/tasks/{task_id}', response_model=dict)
+@app.delete("/tasks/{task_id}")
 def delete_task(task_id: str):
-    item = tasks_col.find_one({'_id': ObjectId(task_id)})
-    if not item:
-        raise HTTPException(status_code=404, detail='Not found')
-    tasks_col.delete_one({'_id': ObjectId(task_id)})
+    task = tasks_col.find_one({"_id": ObjectId(task_id)})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    tasks_col.delete_one({"_id": ObjectId(task_id)})
+
     # try:
-    # producer.send('tasks', {'action': 'delete', 'task_id': task_id})
-    # producer.flush()
+    #     producer.send("tasks", {"action": "delete", "task_id": task_id})
+    #     producer.flush()
     # except Exception as e:
-    #     print('Kafka produce error', e)
-    return {'status': 'deleted', 'id': task_id}
+    #     print("Kafka produce error", e)
+
+    return {"status": "deleted", "id": task_id}
 
 
-@app.post('/upload', response_model=dict)
+@app.post("/upload")
 def upload_file(file: UploadFile = File(...)):
     # data = file.file.read()
     # key = file.filename
     # s3.put_object(Bucket=MINIO_BUCKET, Key=key, Body=data)
-    # url = f'http://{MINIO_ENDPOINT}/{MINIO_BUCKET}/{key}'
-    # return {'filename': key, 'url': url}
-    return "Success"
+    # url = f"http://{MINIO_ENDPOINT}/{MINIO_BUCKET}/{key}"
+    # return {"filename": key, "url": url}
+    return {"filename": file.filename, "status": "Success"}
 
 
 if __name__ == "__main__":
     import uvicorn
+
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
