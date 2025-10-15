@@ -74,6 +74,8 @@ jobs:
         with:
           app-name: 'taskmgmt-backend'
           slot-name: 'Production'
+          package: './backend'
 
           
+
 
