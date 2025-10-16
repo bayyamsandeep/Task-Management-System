@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 from bson.objectid import ObjectId
 import os
 import json
@@ -13,22 +13,13 @@ from botocore.client import Config
 # load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI", "")
-KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "")
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "")
-MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "")
-MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "")
-MINIO_BUCKET = os.getenv("MINIO_BUCKET", "uploads")
-
-if not MONGO_URI:
-    raise RuntimeError("❌ MONGO_URI environment variable not set.")
-
-try:
-    client = MongoClient(MONGO_URI)
-    db = client.get_database("tasksdb")  # or any DB name you use
-    print("✅ Connected to MongoDB (CosmosDB) successfully.")
-except Exception as e:
-    print("❌ MongoDB connection failed:", e)
-    raise e
+DB_NAME = "tasksdb"
+COLLECTION_NAME = "tasks"
+# KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "")
+# MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "")
+# MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "")
+# MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "")
+# MINIO_BUCKET = os.getenv("MINIO_BUCKET", "uploads")
 
 # Kafka producer (simple)
 # producer = KafkaProducer(
@@ -54,6 +45,9 @@ except Exception as e:
 #     pass
 
 app = FastAPI(title="Task Management API")
+client = None
+db = None
+tasks_col = None
 
 # Allow CORS from frontend (adjust origin as needed)
 app.add_middleware(
@@ -63,6 +57,36 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def startup_db_client():
+    global client, db, tasks_col
+    try:
+        if not MONGO_URI:
+            raise RuntimeError("❌ MONGO_URI environment variable not set.")
+
+        client = MongoClient(MONGO_URI)
+        db = client[DB_NAME]
+
+        # Only run this check once at startup
+        if COLLECTION_NAME not in db.list_collection_names():
+            db.create_collection(COLLECTION_NAME)
+            print(f"🆕 Created collection '{COLLECTION_NAME}' in database '{DB_NAME}'")
+
+        tasks_col = db[COLLECTION_NAME]
+        print("✅ MongoDB connection established and verified.")
+
+    except errors.ConnectionFailure as e:
+        print("❌ MongoDB connection failed:", e)
+        raise e
+
+
+@app.on_event("shutdown")
+def shutdown_db_client():
+    if client:
+        client.close()
+        print("🔒 MongoDB connection closed.")
 
 
 @app.get("/")
