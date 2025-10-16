@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient, errors
 from bson.objectid import ObjectId
 
-MONGO_URI = os.getenv("MONGO_URI", "")
+MONGO_URI = os.getenv("MONGO_URI", "localhost:27017")
 DB_NAME = "tasksdb"
 COLLECTION_NAME = "tasks"
 
@@ -100,6 +100,7 @@ def get_task(task_id: str):
 @app.put("/tasks/{task_id}")
 async def update_task(task_id: str, request: Request):
     task_data = await request.json()
+    task_data.pop("_id", None)
     result = tasks_col.update_one({"_id": ObjectId(task_id)}, {"$set": task_data})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Task not found")

@@ -182,15 +182,27 @@ h2 {
 }
 
 .create-task input {
+    width: 350px;
+    height: 15px;
     padding: 8px;
     border-radius: 6px;
-    border: 1px solid #ccc;
+    border: 2px solid #ccc;
+}
+
+.create-task input:focus {
+    border-color: #0b5fff;
+    outline: none;
+    box-shadow: 0 0 5px rgba(11, 95, 255, 0.5);
 }
 
 .create-task button {
+    width: 200px;
+    height: 45px;
+    margin-top: 14px;
+    font-weight: bold;
     padding: 8px 14px;
     border: none;
-    border-radius: 6px;
+    border-radius: 10px;
     background-color: #0b5fff;
     color: #fff;
     cursor: pointer;
