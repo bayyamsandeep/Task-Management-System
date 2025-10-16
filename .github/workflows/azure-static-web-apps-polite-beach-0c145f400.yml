@@ -48,6 +48,8 @@ jobs:
           output_location: "build" # Built app content directory - optional
           github_id_token: ${{ steps.idtoken.outputs.result }}
           ###### End of Repository/Build Configurations ######
+        env:
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -62,6 +64,6 @@ jobs:
           action: "close"
           app_location: "./frontend" # App source code path
           github_id_token: ${{ secrets.GITHUB_TOKEN }}
-          
+
          
             
