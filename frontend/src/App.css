@@ -166,3 +166,37 @@ h2 {
         transform: translateY(0)
     }
 }
+
+
+
+.create-task {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.create-task form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.create-task input {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+.create-task button {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    background-color: #0b5fff;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.create-task button:hover {
+    background-color: #0847c2;
+}

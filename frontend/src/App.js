@@ -28,9 +28,12 @@ export default function App() {
     );
 }
 
+// ------------------ HOME ------------------
 function Home() {
     const [tasks, setTasks] = useState([]);
     const [editTask, setEditTask] = useState(null);
+    const [newTitle, setNewTitle] = useState('');
+    const [newDesc, setNewDesc] = useState('');
 
     useEffect(() => { fetchTasks(); }, []);
 
@@ -42,6 +45,19 @@ function Home() {
         } catch (e) {
             console.error('Failed to fetch tasks', e);
         }
+    }
+
+    async function createTask(e) {
+        e.preventDefault();
+        if (!newTitle.trim()) return;
+        await fetch(`${API}/tasks`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: newTitle, description: newDesc, done: false })
+        });
+        setNewTitle('');
+        setNewDesc('');
+        fetchTasks();
     }
 
     async function updateTask(task) {
@@ -57,6 +73,28 @@ function Home() {
     return (
         <div>
             <h2>Tasks</h2>
+
+            {/* Create Task Form */}
+            <div className="create-task">
+                <form onSubmit={createTask}>
+                    <input
+                        type="text"
+                        placeholder="Task Title"
+                        value={newTitle}
+                        onChange={e => setNewTitle(e.target.value)}
+                        required
+                    />
+                    <input
+                        type="text"
+                        placeholder="Task Description"
+                        value={newDesc}
+                        onChange={e => setNewDesc(e.target.value)}
+                    />
+                    <button type="submit">Add Task</button>
+                </form>
+            </div>
+
+            {/* Task Grid */}
             <div className="task-grid">
                 {tasks.map(task => (
                     <div key={task._id} className="task-card">
@@ -77,9 +115,12 @@ function Home() {
     );
 }
 
+// ------------------ ADMIN ------------------
 function Admin() {
     const [tasks, setTasks] = useState([]);
     const [editTask, setEditTask] = useState(null);
+    const [newTitle, setNewTitle] = useState('');
+    const [newDesc, setNewDesc] = useState('');
 
     useEffect(() => { fetchTasks(); }, []);
 
@@ -89,9 +130,16 @@ function Admin() {
         setTasks(data);
     }
 
-    async function deleteTask(id) {
-        if (!window.confirm('Are you sure you want to delete this task?')) return;
-        await fetch(`${API}/tasks/${id}`, { method: 'DELETE' });
+    async function createTask(e) {
+        e.preventDefault();
+        if (!newTitle.trim()) return;
+        await fetch(`${API}/tasks`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: newTitle, description: newDesc, done: false })
+        });
+        setNewTitle('');
+        setNewDesc('');
         fetchTasks();
     }
 
@@ -105,9 +153,37 @@ function Admin() {
         fetchTasks();
     }
 
+    async function deleteTask(id) {
+        if (!window.confirm('Are you sure you want to delete this task?')) return;
+        await fetch(`${API}/tasks/${id}`, { method: 'DELETE' });
+        fetchTasks();
+    }
+
     return (
         <div>
             <h2>Admin Panel</h2>
+
+            {/* Create Task Form */}
+            <div className="create-task">
+                <form onSubmit={createTask}>
+                    <input
+                        type="text"
+                        placeholder="Task Title"
+                        value={newTitle}
+                        onChange={e => setNewTitle(e.target.value)}
+                        required
+                    />
+                    <input
+                        type="text"
+                        placeholder="Task Description"
+                        value={newDesc}
+                        onChange={e => setNewDesc(e.target.value)}
+                    />
+                    <button type="submit">Add Task</button>
+                </form>
+            </div>
+
+            {/* Task Grid */}
             <div className="task-grid">
                 {tasks.map(task => (
                     <div key={task._id} className="task-card admin">
@@ -128,6 +204,7 @@ function Admin() {
     );
 }
 
+// ------------------ EDIT MODAL ------------------
 function EditModal({ task, setTask, saveTask }) {
     const [title, setTitle] = useState(task.title);
     const [desc, setDesc] = useState(task.description);
