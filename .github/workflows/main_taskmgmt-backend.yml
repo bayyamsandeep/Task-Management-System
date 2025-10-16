@@ -8,6 +8,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'backend/**' # Trigger only on changes in the backend directory
   workflow_dispatch:
 
 jobs:
