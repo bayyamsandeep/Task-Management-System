@@ -78,7 +78,7 @@ function Home() {
             <div className="create-task">
                 <form onSubmit={createTask}>
                     <div className="form-group">
-                        <label htmlFor="taskTitle">Task Title</label>
+                        <label htmlFor="taskTitle">Title</label>
                         <input
                             id="taskTitle"
                             type="text"
@@ -89,7 +89,7 @@ function Home() {
                         />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="taskDesc">Task Description</label>
+                        <label htmlFor="taskDesc">Description</label>
                         <input
                             id="taskDesc"
                             type="text"
