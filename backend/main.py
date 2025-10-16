@@ -1,8 +1,8 @@
+import os
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient, errors
 from bson.objectid import ObjectId
-import os
 
 MONGO_URI = os.getenv("MONGO_URI", "")
 DB_NAME = "tasksdb"
