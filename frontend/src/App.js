@@ -18,18 +18,6 @@ function Header({ tab, setTab }) {
 
 export default function App() {
     const [tab, setTab] = useState('home');
-    return (
-        <div>
-            <Header tab={tab} setTab={setTab} />
-            <div className="container">
-                {tab === 'home' ? <Home /> : <Admin />}
-            </div>
-        </div>
-    );
-}
-
-// ------------------ HOME ------------------
-function Home() {
     const [tasks, setTasks] = useState([]);
     const [editTask, setEditTask] = useState(null);
     const [newTitle, setNewTitle] = useState('');
@@ -70,97 +58,6 @@ function Home() {
         fetchTasks();
     }
 
-    return (
-        <div>
-            <h2>Tasks</h2>
-
-            {/* Create Task Form */}
-            <div className="create-task">
-                <form onSubmit={createTask}>
-                    <div className="form-group">
-                        <label htmlFor="taskTitle">Title</label>
-                        <input
-                            id="taskTitle"
-                            type="text"
-                            placeholder="Enter task title"
-                            value={newTitle}
-                            onChange={e => setNewTitle(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="taskDesc">Description</label>
-                        <input
-                            id="taskDesc"
-                            type="text"
-                            placeholder="Enter task description"
-                            value={newDesc}
-                            onChange={e => setNewDesc(e.target.value)}
-                        />
-                    </div>
-                    <button type="submit">Add Task</button>
-                </form>
-            </div>
-
-            {/* Task Grid */}
-            <div className="task-grid">
-                {tasks.map(task => (
-                    <div key={task._id} className="task-card">
-                        <h3>{task.title}</h3>
-                        <p>{task.description}</p>
-                        <div className="task-actions">
-                            <button onClick={() => setEditTask(task)} className="icon-btn"><FiEdit /></button>
-                            <button disabled className="icon-btn disabled"><FiTrash2 /></button>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {editTask && (
-                <EditModal task={editTask} setTask={setEditTask} saveTask={updateTask} />
-            )}
-        </div>
-    );
-}
-
-// ------------------ ADMIN ------------------
-function Admin() {
-    const [tasks, setTasks] = useState([]);
-    const [editTask, setEditTask] = useState(null);
-    const [newTitle, setNewTitle] = useState('');
-    const [newDesc, setNewDesc] = useState('');
-
-    useEffect(() => { fetchTasks(); }, []);
-
-    async function fetchTasks() {
-        const res = await fetch(`${API}/tasks`);
-        const data = await res.json();
-        setTasks(data);
-    }
-
-    async function createTask(e) {
-        e.preventDefault();
-        if (!newTitle.trim()) return;
-        await fetch(`${API}/tasks`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: newTitle, description: newDesc, done: false })
-        });
-        setNewTitle('');
-        setNewDesc('');
-        fetchTasks();
-    }
-
-    async function updateTask(task) {
-        await fetch(`${API}/tasks/${task._id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(task)
-        });
-        setEditTask(null);
-        fetchTasks();
-    }
-
     async function deleteTask(id) {
         if (!window.confirm('Are you sure you want to delete this task?')) return;
         await fetch(`${API}/tasks/${id}`, { method: 'DELETE' });
@@ -169,58 +66,64 @@ function Admin() {
 
     return (
         <div>
-            <h2>Admin Panel</h2>
+            <Header tab={tab} setTab={setTab} />
+            <div className="container">
+                <div>
+                    <h2>Tasks</h2>
 
-            {/* Create Task Form */}
-            <div className="create-task">
-                <form onSubmit={createTask}>
-                    <div className="form-group">
-                        <label htmlFor="taskTitle">Title</label>
-                        <input
-                            id="taskTitle"
-                            type="text"
-                            placeholder="Enter task title"
-                            value={newTitle}
-                            onChange={e => setNewTitle(e.target.value)}
-                            required
-                        />
+                    {/* Create Task Form */}
+                    <div className="create-task">
+                        <form onSubmit={createTask}>
+                            <div className="form-group">
+                                <label htmlFor="taskTitle">Title</label>
+                                <input
+                                    id="taskTitle"
+                                    type="text"
+                                    placeholder="Enter task title"
+                                    value={newTitle}
+                                    onChange={e => setNewTitle(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="taskDesc">Description</label>
+                                <input
+                                    id="taskDesc"
+                                    type="text"
+                                    placeholder="Enter task description"
+                                    value={newDesc}
+                                    onChange={e => setNewDesc(e.target.value)}
+                                />
+                            </div>
+                            <button type="submit">Add Task</button>
+                        </form>
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="taskDesc">Description</label>
-                        <input
-                            id="taskDesc"
-                            type="text"
-                            placeholder="Enter task description"
-                            value={newDesc}
-                            onChange={e => setNewDesc(e.target.value)}
-                        />
+
+                    {/* Task Grid */}
+                    <div className="task-grid">
+                        {tasks.map(task => (
+                            <div key={task._id} className={tab != 'admin' ? "task-card" : 'task-card admin'}>
+                                <h3>{task.title}</h3>
+                                <p>{task.description}</p>
+                                <div className="task-actions">
+                                    <button onClick={() => setEditTask(task)} className="icon-btn"><FiEdit /></button>
+                                    {tab !== 'admin' ?
+                                        <button disabled className="icon-btn disabled"><FiTrash2 /></button> :
+                                        <button onClick={() => deleteTask(task._id)} className="icon-btn"><FiTrash2 /></button>}
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                    <button type="submit">Add Task</button>
-                </form>
+
+                    {editTask && (
+                        <EditModal task={editTask} setTask={setEditTask} saveTask={updateTask} />
+                    )}
+                </div>
             </div>
-
-            {/* Task Grid */}
-            <div className="task-grid">
-                {tasks.map(task => (
-                    <div key={task._id} className="task-card admin">
-                        <h3>{task.title}</h3>
-                        <p>{task.description}</p>
-                        <div className="task-actions">
-                            <button onClick={() => setEditTask(task)} className="icon-btn"><FiEdit /></button>
-                            <button onClick={() => deleteTask(task._id)} className="icon-btn"><FiTrash2 /></button>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {editTask && (
-                <EditModal task={editTask} setTask={setEditTask} saveTask={updateTask} />
-            )}
         </div>
     );
 }
 
-// ------------------ EDIT MODAL ------------------
 function EditModal({ task, setTask, saveTask }) {
     const [title, setTitle] = useState(task.title);
     const [desc, setDesc] = useState(task.description);
