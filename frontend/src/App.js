@@ -77,19 +77,27 @@ function Home() {
             {/* Create Task Form */}
             <div className="create-task">
                 <form onSubmit={createTask}>
-                    <input
-                        type="text"
-                        placeholder="Task Title"
-                        value={newTitle}
-                        onChange={e => setNewTitle(e.target.value)}
-                        required
-                    />
-                    <input
-                        type="text"
-                        placeholder="Task Description"
-                        value={newDesc}
-                        onChange={e => setNewDesc(e.target.value)}
-                    />
+                    <div className="form-group">
+                        <label htmlFor="taskTitle">Task Title</label>
+                        <input
+                            id="taskTitle"
+                            type="text"
+                            placeholder="Enter task title"
+                            value={newTitle}
+                            onChange={e => setNewTitle(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="taskDesc">Task Description</label>
+                        <input
+                            id="taskDesc"
+                            type="text"
+                            placeholder="Enter task description"
+                            value={newDesc}
+                            onChange={e => setNewDesc(e.target.value)}
+                        />
+                    </div>
                     <button type="submit">Add Task</button>
                 </form>
             </div>

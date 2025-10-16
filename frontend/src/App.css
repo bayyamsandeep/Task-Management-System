@@ -200,3 +200,16 @@ h2 {
 .create-task button:hover {
     background-color: #0847c2;
 }
+
+
+.create-task .form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+}
+
+.create-task label {
+    margin-bottom: 4px;
+    font-weight: 500;
+    color: #333;
+}
