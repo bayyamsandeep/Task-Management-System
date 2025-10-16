@@ -1,50 +1,15 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List
 from pymongo import MongoClient, errors
 from bson.objectid import ObjectId
 import os
-import json
-# from kafka import KafkaProducer
-import boto3
-from botocore.client import Config
-# from dotenv import load_dotenv
-
-# load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI", "")
 DB_NAME = "tasksdb"
 COLLECTION_NAME = "tasks"
-# KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "")
-# MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "")
-# MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "")
-# MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "")
-# MINIO_BUCKET = os.getenv("MINIO_BUCKET", "uploads")
-
-# Kafka producer (simple)
-# producer = KafkaProducer(
-#     bootstrap_servers=[KAFKA_BOOTSTRAP],
-#     value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-#     retries=5
-# )
-
-# # MinIO (S3 compatible) client via boto3
-# s3 = boto3.client(
-#     "s3",
-#     endpoint_url=f"http://{MINIO_ENDPOINT}",
-#     aws_access_key_id=MINIO_ACCESS_KEY,
-#     aws_secret_access_key=MINIO_SECRET_KEY,
-#     config=Config(signature_version="s3v4"),
-#     region_name="us-east-1"
-# )
-
-# # ensure bucket exists (for local, may fail in some cloud envs)
-# try:
-#     s3.create_bucket(Bucket=MINIO_BUCKET)
-# except Exception:
-#     pass
 
 app = FastAPI(title="Task Management API")
+
 client = None
 db = None
 tasks_col = None
@@ -69,7 +34,7 @@ def startup_db_client():
         client = MongoClient(MONGO_URI)
         db = client[DB_NAME]
 
-        # Only run this check once at startup
+        # Ensure collection exists
         if COLLECTION_NAME not in db.list_collection_names():
             db.create_collection(COLLECTION_NAME)
             print(f"🆕 Created collection '{COLLECTION_NAME}' in database '{DB_NAME}'")
@@ -115,14 +80,6 @@ async def create_task(request: Request):
 
     res = tasks_col.insert_one(task_data)
     task_data["_id"] = str(res.inserted_id)
-
-    # send kafka event
-    # try:
-    #     producer.send("tasks", {"action": "create", "task": task_data})
-    #     producer.flush()
-    # except Exception as e:
-    #     print("Kafka produce error", e)
-
     return task_data
 
 
@@ -148,13 +105,6 @@ async def update_task(task_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Task not found")
 
     updated_task = tasks_col.find_one({"_id": ObjectId(task_id)})
-
-    # try:
-    #     producer.send("tasks", {"action": "update", "task": updated_task})
-    #     producer.flush()
-    # except Exception as e:
-    #     print("Kafka produce error", e)
-
     return serialize_task(updated_task)
 
 
@@ -165,28 +115,10 @@ def delete_task(task_id: str):
         raise HTTPException(status_code=404, detail="Task not found")
 
     tasks_col.delete_one({"_id": ObjectId(task_id)})
-
-    # try:
-    #     producer.send("tasks", {"action": "delete", "task_id": task_id})
-    #     producer.flush()
-    # except Exception as e:
-    #     print("Kafka produce error", e)
-
     return {"status": "deleted", "id": task_id}
-
-
-@app.post("/upload")
-def upload_file(file: UploadFile = File(...)):
-    # data = file.file.read()
-    # key = file.filename
-    # s3.put_object(Bucket=MINIO_BUCKET, Key=key, Body=data)
-    # url = f"http://{MINIO_ENDPOINT}/{MINIO_BUCKET}/{key}"
-    # return {"filename": key, "url": url}
-    return {"filename": file.filename, "status": "Success"}
 
 
 if __name__ == "__main__":
     import uvicorn
-
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)

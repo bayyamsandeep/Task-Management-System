@@ -1,47 +1,38 @@
-
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
+import { FiTrash2, FiEdit } from 'react-icons/fi';
+import './App.css';
 
 const API = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-const EVENTS_API = process.env.REACT_APP_EVENTS_URL || 'http://localhost:5000';
-const WS_URL = (process.env.REACT_APP_WS_URL || 'ws://localhost:5000') + '/ws';
 
 function Header({ tab, setTab }) {
     return (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', background: '#0b5fff', color: '#fff' }}>
-            <div style={{ fontWeight: 700 }}>Task Management System</div>
+        <div className="header">
+            <div className="header-title">Task Management System</div>
             <div>
-                <button onClick={() => setTab('home')} style={tab === 'home' ? styles.activeTab : styles.tab}>Home</button>
-                <button onClick={() => setTab('admin')} style={tab === 'admin' ? styles.activeTab : styles.tab}>Admin</button>
+                <button className={tab === 'home' ? 'active-tab' : 'tab'} onClick={() => setTab('home')}>Home</button>
+                <button className={tab === 'admin' ? 'active-tab' : 'tab'} onClick={() => setTab('admin')}>Admin</button>
             </div>
         </div>
     );
 }
 
-const styles = {
-    container: { padding: 20, fontFamily: 'Inter, Arial, sans-serif', maxWidth: 960, margin: '20px auto', background: '#f7f9fc', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' },
-    card: { background: '#fff', padding: 16, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', marginBottom: 12 },
-    tab: { marginLeft: 8, padding: '8px 12px', borderRadius: 6, border: 'none', background: '#e6eefc', cursor: 'pointer' },
-    activeTab: { marginLeft: 8, padding: '8px 12px', borderRadius: 6, border: 'none', background: '#fff', cursor: 'pointer', fontWeight: 700 }
-}
-
 export default function App() {
     const [tab, setTab] = useState('home');
-    return (<div>
-        <Header tab={tab} setTab={setTab} />
-        <div style={styles.container}>
-            {tab === 'home' ? <Home /> : <Admin />}
+    return (
+        <div>
+            <Header tab={tab} setTab={setTab} />
+            <div className="container">
+                {tab === 'home' ? <Home /> : <Admin />}
+            </div>
         </div>
-    </div>);
+    );
 }
 
 function Home() {
     const [tasks, setTasks] = useState([]);
-    const [title, setTitle] = useState('');
-    const [desc, setDesc] = useState('');
-    const [file, setFile] = useState(null);
-    const [events, setEvents] = useState([]);
+    const [editTask, setEditTask] = useState(null);
 
-    useEffect(() => { fetchTasks(); fetchEvents(); }, []);
+    useEffect(() => { fetchTasks(); }, []);
 
     async function fetchTasks() {
         try {
@@ -53,140 +44,109 @@ function Home() {
         }
     }
 
-    async function createTask(e) {
-        e.preventDefault();
-        await fetch(`${API}/tasks`, {
-            method: 'POST',
+    async function updateTask(task) {
+        await fetch(`${API}/tasks/${task._id}`, {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, description: desc, done: false })
+            body: JSON.stringify(task)
         });
-        setTitle(''); setDesc('');
+        setEditTask(null);
         fetchTasks();
     }
 
-    async function deleteTask(id) {
-        await fetch(`${API}/tasks/${id}`, { method: 'DELETE' });
-        fetchTasks();
-    }
-
-    async function uploadFile(e) {
-        e.preventDefault();
-        if (!file) return;
-        const form = new FormData();
-        form.append('file', file);
-        const res = await fetch(`${API}/upload`, { method: 'POST', body: form });
-        const data = await res.json();
-        alert('Uploaded: ' + data.url);
-    }
-
-    async function fetchEvents() {
-        try {
-            const res = await fetch(`${EVENTS_API}/events?limit=10`);
-            const data = await res.json();
-            setEvents(data);
-        } catch (e) {
-            console.error('Failed to fetch events', e);
-        }
-    }
-
-    return (<div>
-        <div style={styles.card}>
-            <h3>Tasks</h3>
-            <form onSubmit={createTask} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" required style={{ flex: 1, padding: 8 }} />
-                <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Description" style={{ flex: 2, padding: 8 }} />
-                <button type="submit" style={{ padding: '8px 14px' }}>Create</button>
-            </form>
-            <ul style={{ marginTop: 12 }}>
-                {tasks.map(t => (<li key={t._id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div><strong>{t.title}</strong><div style={{ color: '#666' }}>{t.description}</div></div>
-                        <div>
-                            <button onClick={() => deleteTask(t._id)} style={{ padding: '6px 8px' }}>Delete</button>
+    return (
+        <div>
+            <h2>Tasks</h2>
+            <div className="task-grid">
+                {tasks.map(task => (
+                    <div key={task._id} className="task-card">
+                        <h3>{task.title}</h3>
+                        <p>{task.description}</p>
+                        <div className="task-actions">
+                            <button onClick={() => setEditTask(task)} className="icon-btn"><FiEdit /></button>
+                            <button disabled className="icon-btn disabled"><FiTrash2 /></button>
                         </div>
                     </div>
-                </li>))}
-            </ul>
-        </div>
+                ))}
+            </div>
 
-        <div style={styles.card}>
-            <h3>Upload File to MinIO</h3>
-            <form onSubmit={uploadFile} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input type="file" onChange={e => setFile(e.target.files[0])} />
-                <button type="submit">Upload</button>
-            </form>
+            {editTask && (
+                <EditModal task={editTask} setTask={setEditTask} saveTask={updateTask} />
+            )}
         </div>
-
-        <div style={styles.card}>
-            <h3>Recent Events (polling)</h3>
-            <button onClick={fetchEvents} style={{ marginBottom: 8 }}>Refresh</button>
-            <ul>
-                {events.map((e, idx) => (<li key={idx}><b>{e.topic}</b> — {new Date(e.timestamp * 1000).toLocaleString()} — <pre style={{ display: 'inline' }}>{JSON.stringify(e.value)}</pre></li>))}
-            </ul>
-        </div>
-    </div>);
+    );
 }
 
 function Admin() {
     const [tasks, setTasks] = useState([]);
-    const [events, setEvents] = useState([]);
-    const wsRef = useRef(null);
+    const [editTask, setEditTask] = useState(null);
 
-    useEffect(() => { fetchAll(); connectWS(); return () => disconnectWS(); }, []);
+    useEffect(() => { fetchTasks(); }, []);
 
-    async function fetchAll() {
-        try {
-            const t = await fetch(`${API}/tasks`).then(r => r.json());
-            setTasks(t);
-            const e = await fetch(`${EVENTS_API}/events?limit=50`).then(r => r.json());
-            setEvents(e);
-        } catch (err) { console.error(err) }
+    async function fetchTasks() {
+        const res = await fetch(`${API}/tasks`);
+        const data = await res.json();
+        setTasks(data);
     }
 
-    function connectWS() {
-        try {
-            const ws = new WebSocket(WS_URL);
-            ws.onopen = () => console.log('WS connected');
-            ws.onmessage = (msg) => {
-                try {
-                    const data = JSON.parse(msg.data);
-                    setEvents(prev => [data].concat(prev).slice(0, 200));
-                } catch (e) { }
-            };
-            ws.onclose = () => console.log('WS closed');
-            ws.onerror = (e) => console.error('WS error', e);
-            wsRef.current = ws;
-        } catch (e) {
-            console.error('Failed to open WS', e);
-        }
+    async function deleteTask(id) {
+        if (!window.confirm('Are you sure you want to delete this task?')) return;
+        await fetch(`${API}/tasks/${id}`, { method: 'DELETE' });
+        fetchTasks();
     }
 
-    function disconnectWS() {
-        try { if (wsRef.current) wsRef.current.close(); } catch (e) { }
+    async function updateTask(task) {
+        await fetch(`${API}/tasks/${task._id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(task)
+        });
+        setEditTask(null);
+        fetchTasks();
     }
 
-    return (<div>
-        <div style={styles.card}>
-            <h3>Admin — Live Events (WebSocket)</h3>
-            <p>Connected to consumer WebSocket for live Kafka events.</p>
-            <ul style={{ maxHeight: 300, overflow: 'auto' }}>
-                {events.map((ev, idx) => (<li key={idx} style={{ padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
-                    <div><strong>{ev.topic}</strong> — {new Date(ev.timestamp * 1000).toLocaleString()}</div>
-                    <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(ev.value, null, 2)}</pre>
-                </li>))}
-            </ul>
+    return (
+        <div>
+            <h2>Admin Panel</h2>
+            <div className="task-grid">
+                {tasks.map(task => (
+                    <div key={task._id} className="task-card admin">
+                        <h3>{task.title}</h3>
+                        <p>{task.description}</p>
+                        <div className="task-actions">
+                            <button onClick={() => setEditTask(task)} className="icon-btn"><FiEdit /></button>
+                            <button onClick={() => deleteTask(task._id)} className="icon-btn"><FiTrash2 /></button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {editTask && (
+                <EditModal task={editTask} setTask={setEditTask} saveTask={updateTask} />
+            )}
         </div>
+    );
+}
 
-        <div style={styles.card}>
-            <h3>All Tasks (Admin)</h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead style={{ textAlign: 'left' }}>
-                    <tr><th style={{ padding: 8 }}>ID</th><th style={{ padding: 8 }}>Title</th><th style={{ padding: 8 }}>Description</th></tr>
-                </thead>
-                <tbody>
-                    {tasks.map(t => (<tr key={t._id}><td style={{ padding: 8 }}>{t._id}</td><td style={{ padding: 8 }}>{t.title}</td><td style={{ padding: 8 }}>{t.description}</td></tr>))}
-                </tbody>
-            </table>
+function EditModal({ task, setTask, saveTask }) {
+    const [title, setTitle] = useState(task.title);
+    const [desc, setDesc] = useState(task.description);
+
+    function handleSave() {
+        saveTask({ ...task, title, description: desc });
+    }
+
+    return (
+        <div className="modal">
+            <div className="modal-content">
+                <h3>Edit Task</h3>
+                <input value={title} onChange={e => setTitle(e.target.value)} />
+                <textarea value={desc} onChange={e => setDesc(e.target.value)} />
+                <div className="modal-actions">
+                    <button onClick={handleSave}>Save</button>
+                    <button onClick={() => setTask(null)} className="cancel">Cancel</button>
+                </div>
+            </div>
         </div>
-    </div>)
+    );
 }
